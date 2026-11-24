@@ -1,0 +1,355 @@
+algoritmo "JogoDaVelhaUltimate"
+//jogo da velha dentro de outro jogo da velha.
+//ganha quem vencer 3 jogos em linha
+ 
+var
+   // Os 9 jogos internos: jogo principal = nove jogos (1 a 9),
+   // segunda dimensao = numero da casa (1 a 9). Valores: "X", "O" ou " "
+   jogo: vetor[1..9, 1..9] de caractere
+ 
+   // Tabuleiro principal: " " = disponivel; "X" ou "O"
+   principal: vetor[1..9] de caractere
+ 
+   // Vetor de verificação (jogo interno ou principal)
+   aux: vetor[1..9] de caractere
+ 
+   jogadorAtual: caractere   // "X" ou "O"
+   jogoAtual: inteiro        // 0 = nenhum jogo em andamento; 1 a 9 = jogo em andamento
+   acabou: logico            // verdadeiro quando a partida principal termina
+   campeao: caractere        // vencedor da partida ("X", "O" ou " " se empate)
+ 
+
+// Prepara todas as variaveis para uma nova partida
+
+procedimento prepararPartida
+var
+   g, c: inteiro
+inicio
+   para g de 1 ate 9 faca
+      principal[g] <- " "
+      para c de 1 ate 9 faca
+         jogo[g, c] <- " "
+      fimpara
+   fimpara
+   jogadorAtual <- "X"     // X sempre comeca
+   jogoAtual <- 0
+   acabou <- falso
+   campeao <- " "
+fimprocedimento
+
+// Esvazia as 9 casas de um jogo interno (usado quando da velha)
+
+procedimento limparJogoInterno(g: inteiro)
+var
+   c: inteiro
+inicio
+   para c de 1 ate 9 faca
+      jogo[g, c] <- " "
+   fimpara
+fimprocedimento
+ 
+// Testa se tres posicoes do vetor aux tem o mesmo simbolo (nao vazio)
+
+funcao testaLinha(a, b, c: inteiro): logico
+var
+   resultado: logico
+inicio
+   resultado <- falso
+   se (aux[a] <> " ") e (aux[a] = aux[b]) e (aux[b] = aux[c]) entao
+      resultado <- verdadeiro
+   fimse
+   retorne resultado
+fimfuncao
+ 
+// Devolve o vencedor de um tabuleiro: "X", "O" ou " " (ninguem)
+// origem de 1 a 9 = jogo interno correspondente
+// origem = 0      = tabuleiro principal
+
+funcao vencedorDe(origem: inteiro): caractere
+var
+   k: inteiro
+   v: caractere
+inicio
+   // Copia o tabuleiro escolhido para o vetor auxiliar
+   para k de 1 ate 9 faca
+      se origem = 0 entao
+         aux[k] <- principal[k]
+      senao
+         aux[k] <- jogo[origem, k]
+      fimse
+   fimpara
+ 
+   v <- " "
+   // Linhas horizontais
+   se testaLinha(1, 2, 3) entao
+      v <- aux[1]
+   fimse
+   se testaLinha(4, 5, 6) entao
+      v <- aux[4]
+   fimse
+   se testaLinha(7, 8, 9) entao
+      v <- aux[7]
+   fimse
+   // Colunas verticais
+   se testaLinha(1, 4, 7) entao
+      v <- aux[1]
+   fimse
+   se testaLinha(2, 5, 8) entao
+      v <- aux[2]
+   fimse
+   se testaLinha(3, 6, 9) entao
+      v <- aux[3]
+   fimse
+   // Diagonais
+   se testaLinha(1, 5, 9) entao
+      v <- aux[1]
+   fimse
+   se testaLinha(3, 5, 7) entao
+      v <- aux[3]
+   fimse
+ 
+   retorne v
+fimfuncao
+ 
+// Conta quantas casas vazias restam em um jogo interno
+
+funcao contarVazias(g: inteiro): inteiro
+var
+   c, total: inteiro
+inicio
+   total <- 0
+   para c de 1 ate 9 faca
+      se jogo[g, c] = " " entao
+         total <- total + 1
+      fimse
+   fimpara
+   retorne total
+fimfuncao
+
+// Exibe o tabuleiro principal
+// Disponivel: mostra o numero da posicao. Conquistado: mostra [X] ou [O]
+
+procedimento mostrarPrincipal
+var
+   lin, col, idx: inteiro
+inicio
+   escreval("=== TABULEIRO PRINCIPAL ===")
+   para lin de 0 ate 2 faca
+      escreva("   ")
+      para col de 1 ate 3 faca
+         idx <- lin * 3 + col
+         se principal[idx] = " " entao
+            escreva(" ", idx, " ")
+         senao
+            escreva("[", principal[idx], "]")
+         fimse
+         se col < 3 entao
+            escreva("|")
+         fimse
+      fimpara
+      escreval("")
+      se lin < 2 entao
+         escreval("   ---+---+---")
+      fimse
+   fimpara
+fimprocedimento
+ 
+
+// Exibe um jogo interno (casa vazia mostra o numero da casa)
+
+procedimento mostrarJogoInterno(g: inteiro)
+var
+   lin, col, idx: inteiro
+inicio
+   escreval("--- JOGO INTERNO ", g, " ---")
+   para lin de 0 ate 2 faca
+      escreva("   ")
+      para col de 1 ate 3 faca
+         idx <- lin * 3 + col
+         se jogo[g, idx] = " " entao
+            escreva(" ", idx, " ")
+         senao
+            escreva(" ", jogo[g, idx], " ")
+         fimse
+         se col < 3 entao
+            escreva("|")
+         fimse
+      fimpara
+      escreval("")
+      se lin < 2 entao
+         escreval("   ---+---+---")
+      fimse
+   fimpara
+fimprocedimento
+ 
+// Pede ao jogador da vez qual jogo interno ele quer jogar.
+// So e chamado quando NAO ha jogo interno em andamento.
+
+procedimento escolherJogo
+var
+   esc, idx: inteiro
+   valido: logico
+inicio
+   escreva("Jogos internos disponiveis: ")
+   para idx de 1 ate 9 faca
+      se principal[idx] = " " entao
+         escreva(idx, " ")
+      fimse
+   fimpara
+   escreval("")
+ 
+   valido <- falso
+   repita
+      escreva("Jogador ", jogadorAtual, ", escolha o jogo interno (1 a 9): ")
+      leia(esc)
+      se (esc < 1) ou (esc > 9) entao
+         escreval(">> Opcao invalida! Digite um numero de 1 a 9.")
+      senao
+         se principal[esc] <> " " entao
+            escreval(">> O jogo interno ", esc, " ja foi conquistado por ", principal[esc], ". Escolha outro.")
+         senao
+            valido <- verdadeiro
+         fimse
+      fimse
+   ate valido
+ 
+   jogoAtual <- esc   // a partir daqui este e o jogo em andamento
+fimprocedimento
+ 
+// Pede a casa do jogo interno em andamento e registra a jogada
+
+procedimento escolherCasa
+var
+   esc: inteiro
+   valido: logico
+inicio
+   valido <- falso
+   repita
+      escreva("Jogador ", jogadorAtual, ", escolha a casa do jogo ", jogoAtual, " (1 a 9): ")
+      leia(esc)
+      se (esc < 1) ou (esc > 9) entao
+         escreval(">> Opcao invalida! Digite um numero de 1 a 9.")
+      senao
+         se jogo[jogoAtual, esc] <> " " entao
+            escreval(">> Essa casa ja esta preenchida! Escolha outra.")
+         senao
+            valido <- verdadeiro
+         fimse
+      fimse
+   ate valido
+ 
+   jogo[jogoAtual, esc] <- jogadorAtual
+fimprocedimento
+
+// Alterna o jogador da vez (sempre alterna, qualquer que seja o resultado)
+
+procedimento trocarJogador
+inicio
+   se jogadorAtual = "X" entao
+      jogadorAtual <- "O"
+   senao
+      jogadorAtual <- "X"
+   fimse
+fimprocedimento
+ 
+// Apos cada jogada: verifica vitoria/empate no jogo interno e,
+// se houve vitoria, verifica o tabuleiro principal
+
+procedimento processarJogada
+var
+   venc: caractere
+   i, conquistadas: inteiro
+inicio
+   venc <- vencedorDe(jogoAtual)
+ 
+   se venc <> " " entao
+      // Alguem venceu o jogo interno
+      escreval(">>> O jogador ", venc, " VENCEU o jogo interno ", jogoAtual, "!")
+      principal[jogoAtual] <- venc
+      jogoAtual <- 0        // jogo concluido: libera a escolha de um novo jogo
+ 
+      // Verifica o tabuleiro principal
+      venc <- vencedorDe(0)
+      se venc <> " " entao
+         campeao <- venc
+         acabou <- verdadeiro
+      senao
+         // Sem vencedor: se as 9 posicoes foram conquistadas, e empate
+         conquistadas <- 0
+         para i de 1 ate 9 faca
+            se principal[i] <> " " entao
+               conquistadas <- conquistadas + 1
+            fimse
+         fimpara
+         se conquistadas = 9 entao
+            acabou <- verdadeiro
+         fimse
+      fimse
+   senao
+      // Sem vencedor: se nao ha mais casas vazias, deu velha no jogo interno
+      se contarVazias(jogoAtual) = 0 entao
+         escreval(">>> VELHA (empate) no jogo interno ", jogoAtual, "!")
+         escreval(">>> Ele foi esvaziado e podera ser jogado novamente.")
+         limparJogoInterno(jogoAtual)
+         jogoAtual <- 0     // jogo concluido: libera a escolha de um novo jogo
+      fimse
+   fimse
+fimprocedimento
+ 
+// ===============================================================
+// PROGRAMA PRINCIPAL
+// ===============================================================
+inicio
+   prepararPartida
+ 
+   escreval("========================================")
+   escreval(" JOGO DA VELHA DENTRO DO JOGO DA VELHA")
+   escreval("========================================")
+   escreval("")
+   escreval("=========================================")
+   escreval("                 REGRAS                  ")
+   escreval("=========================================")
+   escreval("- Vença 3 jogos internos em linha para ganhar a partida.")
+   escreval("- Um jogo interno so termina com vitoria ou velha.")
+   escreval("- Nao e permitido trocar de jogo interno antes de conclui-lo.")
+   escreval("- X comeca.")
+ 
+   enquanto nao acabou faca
+      escreval("")
+      escreval("========================================")
+      mostrarPrincipal
+      escreval("")
+      escreval("Vez do jogador: ", jogadorAtual)
+ 
+      se jogoAtual = 0 entao
+         escreval("Nenhum jogo interno em andamento: escolha um novo jogo.")
+         escolherJogo
+      senao
+         escreval("Jogo interno ", jogoAtual, " em andamento: continue nele ate o fim!")
+      fimse
+ 
+      escreval("")
+      mostrarJogoInterno(jogoAtual)
+      escolherCasa
+      escreval("")
+      mostrarJogoInterno(jogoAtual)
+      processarJogada
+ 
+      // A alternancia e sempre normal: quem jogou passa a vez ao adversario
+      se nao acabou entao
+         trocarJogador
+      fimse
+   fimenquanto
+ 
+   // Resultado final
+   escreval("")
+   escreval("========================================")
+   mostrarPrincipal
+   escreval("")
+   se campeao <> " " entao
+      escreval("*** O JOGADOR ", campeao, " VENCEU A PARTIDA! ***")
+   senao
+      escreval("*** VELHA! A PARTIDA TERMINOU EMPATADA! ***")
+   fimse
+   escreval("Fim de jogo.")
+fimalgoritmo
